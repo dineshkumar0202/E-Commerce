@@ -23,19 +23,36 @@ const getAllProducts = async (req, res) => {
     try {
         // const products = await Products.find();
         // console.log(req.query.key);
-        const apiHelper = new APIHelper(Products.find(), req.query).search();
-        // console.log(apiHelper);
+        const resultPerPage = 4;
+        const apiHelper = new APIHelper(Products.find(), req.query).search().filter();
+
+        // Get total count of products after filtering but before pagination
+        const filterQuery = apiHelper.query.clone();
+        const productsCount = await filterQuery.countDocuments();
+        const totalPages = Math.ceil(productsCount / resultPerPage);
+        const page = Number(req.query.page) || 1;
+
+        if (totalPages > 0 && page > totalPages) {
+            return next(new errorHandler('Page not found', 404));
+        }
+        apiHelper.pagination(resultPerPage); // Apply pagination after getting the count
+
         const products = await apiHelper.query;
-        res.status(200).json({ success: true, products });
+        res.status(200).json({ success: true, products,
+             productsCount,
+            resultPerPage,
+            totalPages,
+            currentPage: page,
+         });
     } catch (err) {
         res.status(500).json({
             success: false,
-            message: err.message,
+            message: err.message
         });
     }
 }
 
-const getSingleProduct = async(req, res) => {
+const getSingleProduct = async (req, res) => {
     try {
         const product = await Products.findById(req.params.id);
         res.status(200).json({ success: true, product });
@@ -47,12 +64,12 @@ const getSingleProduct = async(req, res) => {
     }
 }
 
-const updateProduct = async(req, res) => {
+const updateProduct = async (req, res) => {
     try {
-        const product = await Products.findByIdAndUpdate(req.params.id, req.body,{
+        const product = await Products.findByIdAndUpdate(req.params.id, req.body, {
             new: true,
             runValidators: true,
-        })  
+        })
         res.status(200).json({ success: true, product });
     } catch (error) {
         res.status(500).json({
@@ -62,8 +79,8 @@ const updateProduct = async(req, res) => {
     }
 }
 
-const deleteProduct = async(req, res) => {
-    try{
+const deleteProduct = async (req, res) => {
+    try {
         const product = await Products.findByIdAndDelete(req.params.id);
         res.status(200).json({ success: true, message: "Product deleted successfully" });
     } catch (err) {
