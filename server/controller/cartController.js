@@ -1,49 +1,93 @@
-import Cart from '../models/cartModel.js';
+import Cart from "../models/cartModel.js";
 
-
-// Add to cart controller
-export const addTocart = async (req, res) =>{
+// ADD TO CART
+export const addToCart = async (req, res) => {
     try {
-        const  userId = req.body;
-        const {productId, quantity} = req.body
+        const { productId, quantity } = req.body;
 
-        let cart = await Cart.findOne({ userId });
-        if(!card){
+        let cart = await Cart.findOne({ user: req.user.id });
+
+        if (!cart) {
             cart = await Cart.create({
-                user: userId,
-                cartItems: [{ product: productId, quantity  }]
+                user: req.user.id,
+                items: [{ product: productId, quantity }]
             });
-            return res.status(201).json({ success: true, message: "Product added to cart", cart});
-        }
-        const itemIndex = cart.cartItems.findIndex(
-            (item) => item.product.toString() === productId);
+        } else {
+            const index = cart.items.findIndex(
+                item => item.product.toString() === productId
+            );
 
-            if(itemIndex > -1){
-                cart.cartItems[itemIndex].quantity += quantity;
-            }else{
-                cart.cartItems.push({ product: productId, quantity });
+            if (index > -1) {
+                cart.items[index].quantity += quantity;
+            } else {
+                cart.items.push({ product: productId, quantity });
             }
-            cart = await cart.save();
-            return res.status(200).json({ success: true, message: "Cart updated", cart});
-    } catch (err) {
-        return res.status(500).json({ success: false, message: err.message });
-    }
-}
-
-// Get  user cart controller(View cart)
-
-export const getUserCart = async (req, res) =>{
-    try {
-        const userId = req.user.id;
-
-        const cart = await Cart.findOne({user: userId}).populate('cartItems.product');
-        if(!cart){
-            return res.status(404).json({success: false, message: "Cart not found"});
         }
-        return res.status(200).json({ success: true, cart });
+
+        await cart.save();
+        res.status(200).json({ success: true, cart });
 
     } catch (err) {
-        return res.status(500).json({ success: false, message: err.message });
+        res.status(500).json({ success: false, message: err.message });
     }
-}
+};
 
+// GET CART
+export const getCart = async (req, res) => {
+    try {
+        const cart = await Cart.findOne({ user: req.user.id })
+            .populate("items.product");
+
+        res.status(200).json({
+            success: true,
+            cart: cart || { items: [] }
+        });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// UPDATE QUANTITY
+export const updateQuantity = async (req, res) => {
+    try {
+        const { productId, quantity } = req.body;
+
+        const cart = await Cart.findOne({ user: req.user.id });
+        if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+        const item = cart.items.find(
+            item => item.product.toString() === productId
+        );
+        if (!item) return res.status(404).json({ message: "Item not in cart" });
+
+        item.quantity = quantity;
+        await cart.save();
+
+        res.status(200).json({ success: true, cart });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};
+
+// REMOVE ITEM
+export const removeFromCart = async (req, res) => {
+    try {
+        const { productId } = req.body;
+
+        const cart = await Cart.findOne({ user: req.user.id });
+        if (!cart) return res.status(404).json({ message: "Cart not found" });
+
+        cart.items = cart.items.filter(
+            item => item.product.toString() !== productId
+        );
+
+        await cart.save();
+
+        res.status(200).json({ success: true, cart });
+
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+};

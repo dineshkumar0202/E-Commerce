@@ -1,19 +1,20 @@
 import express from "express";
+import cookieParser from "cookie-parser";
 import productRoute from "./routes/productRoute.js";
-import user from "./routes/userRoute.js";
-// import handleError from "./middleWare/error.js";
+import cartRoute from "./routes/cartRoute.js";
+import userRoute from "./routes/userRoute.js";
 
 const app = express();
 
+// Body parser
 app.use(express.json());
 
+// Cookie parser (correct place)
+app.use(cookieParser());
+
 // Routes
-app.use("/api/v0", productRoute);
-app.use("/api/v0", user);
-
-
-
-// app.use(errorHandle);
-// app.use(handleError);
+app.use("/api/v0/products", productRoute);
+app.use("/api/v0/cart", cartRoute);
+app.use("/api/v0", userRoute);
 
 export default app;
