@@ -19,7 +19,7 @@ const addProduct = async (req, res) => {
 }
 
 //http://localhost:5000/api/v0/products?key=Shoes
-const getAllProducts = async (req, res) => {
+const getAllProducts = async (req, res,next) => {
     try {
         // const products = await Products.find();
         // console.log(req.query.key);
